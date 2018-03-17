@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:background="@drawable/default_wallpaper"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.mjdroid.omactrainingtask4.ConversationActivity">
+
+    <include
+        android:id="@+id/conversation_toolbar"
+        layout="@layout/conversation_toolbar">
+    </include>
+
+
+    <ListView
+        android:id="@+id/chat_list"
+        android:dividerHeight="0dp"
+        android:divider="#00000000"
+        android:stackFromBottom="true"
+        android:layout_below="@+id/conversation_toolbar"
+        android:layout_above="@+id/bottom_bar"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+    </ListView>
+
+    <LinearLayout
+        android:id="@+id/bottom_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:orientation="horizontal">
+
+        <EditText
+            android:id="@+id/chat_edit"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/input"
+            android:drawableLeft="@drawable/input_emoji"
+            android:drawablePadding="8dp"
+            android:drawableRight="@drawable/input_cam"
+            android:hint="Type a message"
+            android:padding="12dp"/>
+
+        <ImageView
+            android:id="@+id/send_button"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center"
+            android:layout_marginRight="8dp"
+            android:layout_toRightOf="@id/chat_edit"
+            android:background="@drawable/input_circle"
+            android:scaleType="center"
+            android:src="@drawable/input_send"/>
+
+    </LinearLayout>
+
+</RelativeLayout>
