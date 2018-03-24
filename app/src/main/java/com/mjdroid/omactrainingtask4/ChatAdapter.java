@@ -1,6 +1,8 @@
 package com.mjdroid.omactrainingtask4;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -10,6 +12,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+
+import java.io.File;
 import java.util.ArrayList;
 
 /**
@@ -31,8 +35,20 @@ public class ChatAdapter extends ArrayAdapter<ChatMsg> {
 
         ChatMsg currentMsg = getItem(position);
 
-        TextView msgView = (TextView) chatItemView.findViewById(R.id.main_msg);
-        msgView.setText(currentMsg.getMsg());
+        if (currentMsg.getImageFileName() != null) {
+            ImageView imageView = (ImageView) chatItemView.findViewById(R.id.main_image);
+            imageView.setVisibility(View.VISIBLE);
+            String pathAndName = currentMsg.getImageFileName();
+            File image = new File(pathAndName);
+            Bitmap imageBM = BitmapFactory.decodeFile(image.getAbsolutePath());
+            imageView.setImageBitmap(imageBM);
+
+        } else {
+            ImageView imageView = (ImageView) chatItemView.findViewById(R.id.main_image);
+            imageView.setVisibility(View.GONE);
+            TextView msgView = (TextView) chatItemView.findViewById(R.id.main_msg);
+            msgView.setText(currentMsg.getMsg());
+        }
 
         TextView timeView = (TextView) chatItemView.findViewById(R.id.time);
         timeView.setText("12 seconds ago, 7:45 am");

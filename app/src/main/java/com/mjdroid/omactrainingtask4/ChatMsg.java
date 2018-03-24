@@ -1,5 +1,9 @@
 package com.mjdroid.omactrainingtask4;
 
+import android.app.Activity;
+import android.graphics.Bitmap;
+import android.media.MediaPlayer;
+
 /**
  * Created by Mazen on 3/17/2018.
  */
@@ -7,6 +11,7 @@ public class ChatMsg {
     private String mMsg;
     private int mState = MSG_PENDING;
     private boolean mOutgoing = OUTGOING;
+    private String mImageFileName;
 
     public static final int MSG_PENDING = R.drawable.msg_status_gray_waiting;
     public static final int MSG_SENT = R.drawable.msg_status_server_receive;
@@ -19,8 +24,19 @@ public class ChatMsg {
         mOutgoing = outgoing;
     }
 
+    public ChatMsg(String msg, int state, boolean outgoing, String imageFileName) {
+        mMsg = msg;
+        mState = state;
+        mOutgoing = outgoing;
+        mImageFileName = imageFileName;
+    }
+
     public String getMsg(){
         return mMsg;
+    }
+
+    public String getImageFileName() {
+        return mImageFileName;
     }
 
     public int getState() {
