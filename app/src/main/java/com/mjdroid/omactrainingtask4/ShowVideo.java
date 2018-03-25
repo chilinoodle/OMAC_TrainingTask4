@@ -12,29 +12,28 @@ import android.widget.VideoView;
 
 import java.io.File;
 
-public class ShowImage extends AppCompatActivity {
+public class ShowVideo extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_show_image);
-        ImageView imageContainer = (ImageView) findViewById(R.id.image_container);
+        setContentView(R.layout.activity_show_video);
+        VideoView videoContainer = (VideoView) findViewById(R.id.video_container);
         ImageView backButton = (ImageView) findViewById(R.id.back_button);
 
         Intent receivedImage = getIntent();
 
-        if (receivedImage.getStringExtra("imageName") != null) {
-            String fileName = receivedImage.getStringExtra("imageName");
-            String filePath = receivedImage.getStringExtra("imagePath");
-            File imageFile = new File(filePath,fileName);
-            Bitmap imageBM = BitmapFactory.decodeFile(imageFile.getAbsolutePath());
-            imageContainer.setImageBitmap(imageBM);
+        if (receivedImage.getStringExtra("videoName") != null) {
+            String fileName = receivedImage.getStringExtra("videoName");
+            String filePath = receivedImage.getStringExtra("videoPath");
+            videoContainer.setVideoPath(filePath+"/"+fileName);
+            videoContainer.start();
         }
 
         backButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent backToChat = new Intent(ShowImage.this, ConversationActivity.class);
+                Intent backToChat = new Intent(ShowVideo.this, ConversationActivity.class);
                 startActivity(backToChat);
             }
         });

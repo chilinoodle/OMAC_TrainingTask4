@@ -26,14 +26,33 @@
             android:textSize="16sp"
             tools:text="Hello"/>
 
-        <ImageView
-            android:id="@+id/main_image"
-            android:layout_width="240dp"
-            android:layout_height="240dp"
-            android:layout_margin="8dp"
-            android:scaleType="centerCrop"
-            android:visibility="visible"
-            tools:src="@drawable/avatar_contact"/>
+        <RelativeLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+            <ImageView
+                android:id="@+id/main_image"
+                android:layout_width="240dp"
+                android:layout_height="240dp"
+                android:layout_margin="8dp"
+                android:scaleType="centerCrop"
+                android:visibility="gone"
+                tools:src="@drawable/avatar_contact"/>
+
+            <ImageView
+                android:id="@+id/video_play_overlay"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/play_button_background"
+                android:src="@drawable/mviewer_play"
+                android:layout_centerInParent="true"
+                android:scaleType="center"
+                android:visibility="gone"
+                />
+
+        </RelativeLayout>
+
+
 
         <LinearLayout
             android:paddingEnd="8dp"
@@ -41,7 +60,6 @@
             android:layout_marginBottom="4dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/main_msg"
             android:orientation="horizontal">
 
             <TextView

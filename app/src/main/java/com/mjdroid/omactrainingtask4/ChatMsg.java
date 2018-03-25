@@ -11,6 +11,7 @@ public class ChatMsg {
     private int mState = MSG_PENDING;
     private boolean mOutgoing = OUTGOING;
     private String mImageFileName;
+    private String mImagePath;
     private long mTime;
     private boolean mHasImage = WITHOUT_IMAGE;
     private boolean mHasVideo = WITHOUT_VIDEO;
@@ -35,7 +36,7 @@ public class ChatMsg {
         mTime = time;
     }
 
-    public ChatMsg(String msg, int state, boolean outgoing, boolean hasImage, boolean hasVideo, long time, String imageFileName) {
+    public ChatMsg(String msg, int state, boolean outgoing, boolean hasImage, boolean hasVideo, long time, String imageFileName, String imagePath) {
         mMsg = msg;
         mState = state;
         mOutgoing = outgoing;
@@ -43,6 +44,7 @@ public class ChatMsg {
         mHasVideo = hasVideo;
         mTime = time;
         mImageFileName = imageFileName;
+        mImagePath = imagePath;
     }
 
     public String getMsg(){
@@ -51,6 +53,10 @@ public class ChatMsg {
 
     public String getImageFileName() {
         return mImageFileName;
+    }
+
+    public String getImagePath() {
+        return mImagePath;
     }
 
     public int getState() {

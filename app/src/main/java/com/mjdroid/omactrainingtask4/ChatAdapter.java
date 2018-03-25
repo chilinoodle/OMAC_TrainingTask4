@@ -3,6 +3,9 @@ package com.mjdroid.omactrainingtask4;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.ThumbnailUtils;
+import android.provider.MediaStore;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -37,38 +40,30 @@ public class ChatAdapter extends ArrayAdapter<ChatMsg> {
 
         ImageView mainImage = (ImageView) chatItemView.findViewById(R.id.main_image);
         TextView mainMsg = (TextView) chatItemView.findViewById(R.id.main_msg);
+        ImageView playButtonImage = (ImageView) chatItemView.findViewById(R.id.video_play_overlay);
 
         ChatMsg currentMsg = getItem(position);
 
-        /*Log.v("ChatMsg at",""+position);
-        Log.v("Text", currentMsg.getMsg());
-        Log.v("state", "" + currentMsg.getState());
-        Log.v("Time", "" + currentMsg.getMsgTime());
-        Log.v("Has image", "" + currentMsg.hasImage());
-        Log.v("Has video", "" + currentMsg.hasVideo());
-        Log.v("------","------");*/
-
-        Bitmap imageBM;
-
         if (currentMsg.hasImage()) {
-
-            String pathAndName = currentMsg.getImageFileName();
-            File image = new File(pathAndName);
-            imageBM = BitmapFactory.decodeFile(image.getAbsolutePath());
+            String thnName = currentMsg.getImageFileName();
+            String thnPath = currentMsg.getImagePath() + "/.thumbnails";
+            File imageThn = new File(thnPath, thnName);
+            Bitmap imageMBThn = BitmapFactory.decodeFile(imageThn.getAbsolutePath());
             mainImage.setVisibility(View.VISIBLE);
+            playButtonImage.setVisibility(View.GONE);
             mainMsg.setVisibility(View.GONE);
+            mainImage.setImageBitmap(imageMBThn);
 
-            try {
-                int height = imageBM.getHeight();
-                int width = imageBM.getWidth();
-                Bitmap imageBMTN = Bitmap.createScaledBitmap(imageBM, width / 10, height / 10, false);
-                mainImage.setImageBitmap(imageBMTN);
-            }
-            catch (NullPointerException e) {
-                mainImage.setVisibility(View.GONE);
-                mainMsg.setVisibility(View.VISIBLE);
-                mainMsg.setText("(Image was deleted locally)");
-            }
+        } else if (currentMsg.hasVideo()){
+            String thnName = currentMsg.getImageFileName();
+            String thnNameWithoutExtension = thnName.substring(0, thnName.length()-4);
+            String thnPath = currentMsg.getImagePath() + "/.thumbnails";
+            File videoThn = new File(thnPath, thnNameWithoutExtension + ".jpg");
+            Bitmap videoMBThn = BitmapFactory.decodeFile(videoThn.getAbsolutePath());
+            mainImage.setVisibility(View.VISIBLE);
+            playButtonImage.setVisibility(View.VISIBLE);
+            mainMsg.setVisibility(View.GONE);
+            mainImage.setImageBitmap(videoMBThn);
 
         } else {
             mainImage.setVisibility(View.GONE);

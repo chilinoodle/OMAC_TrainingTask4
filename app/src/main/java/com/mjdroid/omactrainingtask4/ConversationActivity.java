@@ -7,9 +7,12 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.media.SoundPool;
+import android.media.ThumbnailUtils;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -25,9 +28,12 @@ import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.Toast;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.lang.reflect.Type;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -57,8 +63,12 @@ public class ConversationActivity extends AppCompatActivity {
     public final int MY_PERMISSIONS_REQUEST_CAMERA=333;
     public final int MY_PERMISSIONS_REQUEST_STORAGE=444;
     public final int REQUEST_IMAGE_CAPTURE = 222;
+    public final int REQUEST_VIDEO_CAPTURE = 555;
     public String mCurrentPhotoPath;
+    public String mCurrentVideoPath;
     public String currentImageFileName;
+    public String currentVideoFileName;
+
 
 
     protected void onCreate(Bundle savedInstanceState) {
@@ -125,19 +135,10 @@ public class ConversationActivity extends AppCompatActivity {
             camButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                    File imageDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/MJ_Pictures");
-                    mCurrentPhotoPath = imageDirectory.getAbsolutePath();
-                    String imageName = createImageFileName();
-                    currentImageFileName = imageName;
-                    File imageFile = new File(imageDirectory,imageName);
-                    Uri photoUri = Uri.fromFile(imageFile);
-                    takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);
-                    startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+                    showDialog();
                 }
             });
         }
-
     }
 
     @Override
@@ -150,8 +151,36 @@ public class ConversationActivity extends AppCompatActivity {
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
             long msgTime = Calendar.getInstance().getTimeInMillis();
-            //ChatMsg(String msg, int state, boolean outgoing, boolean hasImage, boolean hasVideo, long time, String imageFileName)
-            ChatMsg msg = new ChatMsg("", ChatMsg.MSG_PENDING, isOutgoing, withImage, withoutVideo, msgTime, mCurrentPhotoPath + "/" + currentImageFileName);
+
+            try {
+                createThumbnail(currentImageFileName, mCurrentPhotoPath);
+            }
+            catch (Exception e) {
+                Toast.makeText(ConversationActivity.this, "Thumbnail was not created", Toast.LENGTH_SHORT).show();
+            }
+            //ChatMsg(String msg, int state, boolean outgoing, boolean hasImage, boolean hasVideo, long time, String imageFileName, String imagePath)
+            ChatMsg msg = new ChatMsg("", ChatMsg.MSG_PENDING, isOutgoing, withImage, withoutVideo, msgTime, currentImageFileName, mCurrentPhotoPath);
+            chatArray.add(msg);
+            if (msg.isOutgoing()) {
+                playSend();
+
+            } else {
+                playReceived();
+            }
+            updateAdapter();
+            saveChatList();
+
+        } else if (requestCode == REQUEST_VIDEO_CAPTURE && resultCode == RESULT_OK) {
+            long msgTime = Calendar.getInstance().getTimeInMillis();
+
+            try {
+                createThumbnail(currentVideoFileName, mCurrentVideoPath);
+            }
+            catch (Exception e) {
+                Toast.makeText(ConversationActivity.this, "Thumbnail was not created", Toast.LENGTH_SHORT).show();
+            }
+            //ChatMsg(String msg, int state, boolean outgoing, boolean hasImage, boolean hasVideo, long time, String imageFileName, String imagePath)
+            ChatMsg msg = new ChatMsg("", ChatMsg.MSG_PENDING, isOutgoing, withoutImage, withVideo, msgTime, currentVideoFileName, mCurrentVideoPath);
             chatArray.add(msg);
             if (msg.isOutgoing()) {
                 playSend();
@@ -215,8 +244,14 @@ public class ConversationActivity extends AppCompatActivity {
                 ChatMsg imageMsg = chatArray.get(position);
                 if (imageMsg.hasImage()) {
                     Intent showImage = new Intent(ConversationActivity.this, ShowImage.class);
-                    showImage.putExtra("imagePath", imageMsg.getImageFileName());
+                    showImage.putExtra("imagePath", imageMsg.getImagePath());
+                    showImage.putExtra("imageName", imageMsg.getImageFileName());
                     startActivity(showImage);
+                } else if (imageMsg.hasVideo()) {
+                    Intent showVideo = new Intent(ConversationActivity.this, ShowVideo.class);
+                    showVideo.putExtra("videoPath", imageMsg.getImagePath());
+                    showVideo.putExtra("videoName", imageMsg.getImageFileName());
+                    startActivity(showVideo);
                 }
             }
         });
@@ -331,6 +366,106 @@ public class ConversationActivity extends AppCompatActivity {
     public String createImageFileName() {
         String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HHmmss").format(new Date());
         return "MJ-" + timeStamp + ".jpg";
+    }
+
+    public String createVideoFileName() {
+        String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HHmmss").format(new Date());
+        return "MJ-" + timeStamp + ".mp4";
+    }
+
+    public void createThumbnail(String fileName, String filePath) throws Exception {
+
+        String extension = fileName.substring(fileName.length() - 4);
+
+        if (extension.equals(".jpg")) {
+            Bitmap originalImage = BitmapFactory.decodeFile(filePath + "/" + fileName);
+            int h = originalImage.getHeight();
+            int w = originalImage.getWidth();
+            Bitmap imageThnBm = ThumbnailUtils.extractThumbnail(BitmapFactory.decodeFile(filePath + "/" + fileName), (int) Math.floor(w / 10), (int) Math.floor(h / 10));
+            File imageThnDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/MJ_Pictures/.thumbnails");
+            if (!imageThnDir.exists()) {
+                if (!imageThnDir.mkdirs()) {
+                    Toast.makeText(ConversationActivity.this, "Directory was not made", Toast.LENGTH_SHORT).show();
+                }
+            }
+            File imageThn = new File(imageThnDir + "/" + fileName);
+            FileOutputStream fos = new FileOutputStream(imageThn);
+            BufferedOutputStream bos = new BufferedOutputStream(fos);
+            imageThnBm.compress(Bitmap.CompressFormat.JPEG, 100, bos);
+            bos.flush();
+            bos.close();
+            imageThnBm.recycle();
+
+        } else if (extension.equals(".mp4")) {
+            Bitmap videoThnBm = ThumbnailUtils.createVideoThumbnail(filePath + "/" + fileName, MediaStore.Images.Thumbnails.MINI_KIND);
+            File videoThnDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/MJ_Videos/.thumbnails");
+            if (!videoThnDir.exists()) {
+                if (!videoThnDir.mkdirs()){
+                    Toast.makeText(ConversationActivity.this, "Directory was not made", Toast.LENGTH_SHORT).show();
+                }
+            }
+            String fileNameWithoutExtension = fileName.substring(0,fileName.length()-4);
+            File videoThn = new File(videoThnDir + "/" + fileNameWithoutExtension + ".jpg");
+            FileOutputStream fos = new FileOutputStream(videoThn);
+            BufferedOutputStream bos = new BufferedOutputStream(fos);
+            videoThnBm.compress(Bitmap.CompressFormat.JPEG, 100, bos);
+            bos.flush();
+            bos.close();
+            videoThnBm.recycle();
+        }
+
+
+    }
+
+    public void showDialog(){
+        final String actions[] = {"Take a Photo","Capture Video"};
+        AlertDialog.Builder builder = new AlertDialog.Builder(ConversationActivity.this);
+        builder.setTitle("Choose Action");
+        builder.setItems(actions, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String selectedAction = actions[which];
+                switch (selectedAction) {
+                    case "Take a Photo":
+                        takePhoto();
+                        break;
+                    case "Capture Video":
+                        captureVideo();
+                        break;
+                }
+            }
+        });
+        builder.show();
+    }
+
+    public void takePhoto() {
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        File imageDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/MJ_Pictures");
+        if (!imageDirectory.exists()) {
+            imageDirectory.mkdir();
+        }
+        mCurrentPhotoPath = imageDirectory.getAbsolutePath();
+        String imageName = createImageFileName();
+        currentImageFileName = imageName;
+        File imageFile = new File(imageDirectory, imageName);
+        Uri photoUri = Uri.fromFile(imageFile);
+        takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);
+        startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+    }
+
+    public void captureVideo(){
+        Intent captureVideoIntent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
+        File videoDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/MJ_Videos");
+        if (!videoDirectory.exists()) {
+            videoDirectory.mkdir();
+        }
+        mCurrentVideoPath = videoDirectory.getAbsolutePath();
+        String videoName = createVideoFileName();
+        currentVideoFileName = videoName;
+        File videoFile = new File(videoDirectory, videoName);
+        Uri videoUri = Uri.fromFile(videoFile);
+        captureVideoIntent.putExtra(MediaStore.EXTRA_OUTPUT, videoUri);
+        startActivityForResult(captureVideoIntent, REQUEST_VIDEO_CAPTURE);
     }
 }
 
