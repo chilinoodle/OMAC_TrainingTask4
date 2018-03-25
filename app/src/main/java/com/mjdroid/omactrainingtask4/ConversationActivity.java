@@ -7,7 +7,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.media.SoundPool;
@@ -22,6 +21,7 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -31,8 +31,8 @@ import java.io.File;
 import java.lang.reflect.Type;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
-
 
 
 public class ConversationActivity extends AppCompatActivity {
@@ -42,6 +42,10 @@ public class ConversationActivity extends AppCompatActivity {
     public ChatAdapter adapter;
     public EditText chatEdit;
     public boolean isOutgoing = ChatMsg.OUTGOING;
+    public boolean withImage = ChatMsg.WITH_IMAGE;
+    public boolean withVideo = ChatMsg.WITH_VIDEO;
+    public boolean withoutImage = ChatMsg.WITHOUT_IMAGE;
+    public boolean withoutVideo = ChatMsg.WITHOUT_VIDEO;
     public SoundPool.Builder spb;
     public AudioAttributes.Builder aab;
     public SoundPool sp;
@@ -101,7 +105,9 @@ public class ConversationActivity extends AppCompatActivity {
         sendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                ChatMsg msg = new ChatMsg(chatEdit.getText().toString(), ChatMsg.MSG_PENDING, isOutgoing);
+                long msgTime = Calendar.getInstance().getTimeInMillis();
+                //ChatMsg(String msg, int state, boolean outgoing, boolean hasImage, boolean hasVideo, long time)
+                ChatMsg msg = new ChatMsg(chatEdit.getText().toString(), ChatMsg.MSG_PENDING, isOutgoing, withoutImage, withoutVideo, msgTime);
                 chatArray.add(msg);
                 if (msg.isOutgoing()) {
                     playSend();
@@ -120,7 +126,7 @@ public class ConversationActivity extends AppCompatActivity {
                 @Override
                 public void onClick(View v) {
                     Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                    File imageDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
+                    File imageDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/MJ_Pictures");
                     mCurrentPhotoPath = imageDirectory.getAbsolutePath();
                     String imageName = createImageFileName();
                     currentImageFileName = imageName;
@@ -128,9 +134,6 @@ public class ConversationActivity extends AppCompatActivity {
                     Uri photoUri = Uri.fromFile(imageFile);
                     takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);
                     startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
-
-                    //HERE WAS THE BLOCK THAT IS NOW IN onActivityResult
-
                 }
             });
         }
@@ -146,8 +149,9 @@ public class ConversationActivity extends AppCompatActivity {
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
-            //THIS BLOCK WAS IN OnClickListener of camButton:
-            ChatMsg msg = new ChatMsg("",ChatMsg.MSG_PENDING,isOutgoing,mCurrentPhotoPath + "/" + currentImageFileName);
+            long msgTime = Calendar.getInstance().getTimeInMillis();
+            //ChatMsg(String msg, int state, boolean outgoing, boolean hasImage, boolean hasVideo, long time, String imageFileName)
+            ChatMsg msg = new ChatMsg("", ChatMsg.MSG_PENDING, isOutgoing, withImage, withoutVideo, msgTime, mCurrentPhotoPath + "/" + currentImageFileName);
             chatArray.add(msg);
             if (msg.isOutgoing()) {
                 playSend();
@@ -164,10 +168,10 @@ public class ConversationActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch(item.getItemId()) {
             case R.id.switch_conversation:
-                if (isOutgoing == true) {
-                    isOutgoing = false;
-                } else if (isOutgoing == false) {
-                    isOutgoing = true;
+                if (isOutgoing == ChatMsg.OUTGOING) {
+                    isOutgoing = ChatMsg.INCOMING;
+                } else if (isOutgoing == ChatMsg.INCOMING) {
+                    isOutgoing = ChatMsg.OUTGOING;
                 }
                 return true;
 
@@ -205,10 +209,21 @@ public class ConversationActivity extends AppCompatActivity {
         adapter = new ChatAdapter(ConversationActivity.this,chatArray);
         chatList.setAdapter(adapter);
         chatList.setSelection(chatList.getAdapter().getCount() - 1);
+        chatList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                ChatMsg imageMsg = chatArray.get(position);
+                if (imageMsg.hasImage()) {
+                    Intent showImage = new Intent(ConversationActivity.this, ShowImage.class);
+                    showImage.putExtra("imagePath", imageMsg.getImageFileName());
+                    startActivity(showImage);
+                }
+            }
+        });
     }
 
     public void saveChatList() {
-        SharedPreferences sp = getSharedPreferences("shared preferences",MODE_PRIVATE);
+        SharedPreferences sp = getSharedPreferences("shared preferences", MODE_PRIVATE);
         SharedPreferences.Editor editor =sp.edit();
         Gson gson = new Gson();
         String json = gson.toJson(chatArray);
@@ -217,16 +232,32 @@ public class ConversationActivity extends AppCompatActivity {
     }
 
     public void loadChatList() {
-        SharedPreferences sp = getSharedPreferences("shared preferences",MODE_PRIVATE);
+        SharedPreferences sp = getSharedPreferences("shared preferences", MODE_PRIVATE);
+
+        //TO PRINT TO LOG SHAREDPREFERENCES CONTENT:
+        /*Map<String, ?> allEntries = sp.getAll();
+        for (Map.Entry<String,?> entry : allEntries.entrySet()) {
+            Log.v("map value", entry.getKey() + ": " + entry.getValue().toString());
+        }*/
+
         Gson gson = new Gson();
         String json = sp.getString("chat list", null);
         Type type = new TypeToken<ArrayList<ChatMsg>>() {}.getType();
         chatArray = gson.fromJson(json, type);
 
+        //TO PRINT TO LOG CHAT ARRAY AFTER LOAD:
+        /*for (int i=0; i < chatArray.size(); i++) {
+            ChatMsg cm = chatArray.get(i);
+            Log.v("Chat text", cm.getMsg());
+            Log.v("Has image", ""+cm.hasImage());
+            Log.v("Has video", ""+cm.hasVideo());
+            Log.v("State", ""+cm.getState());
+            Log.v("Is outgoing", ""+cm.isOutgoing());
+        }*/
+
         if (chatArray == null) {
             chatArray = new ArrayList<ChatMsg>();
         }
-
     }
 
     public void deleteChatHistory() {
